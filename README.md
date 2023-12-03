@@ -23,6 +23,7 @@ These options exist to pass to the executable as input parameters:
 * Sequencer lies are printed in red.
 * Reorgs are printed in yellow. 
 * A summary is printed at the end.
+* If a reorg is not possible, an error message is printed
 
 ## Nex steps
 * Change the persistor layer to redis/mongodb.
