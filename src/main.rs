@@ -11,7 +11,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     let mut state = if cli.load_state {
-        load_state()
+        load_state()?
     } else {
         [0_u64; 256]
     };
