@@ -1,9 +1,8 @@
 use anyhow::{Ok, Result};
-use chainway::{create_merkle_tree, load_state, persist_state, update_state, Block, Cli};
+use chainway::{create_merkle_tree, load_state, persist_state, update_state, Block, Cli, Storage};
 use clap::Parser;
 use colored::Colorize;
 use std::{
-    collections::VecDeque,
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -24,9 +23,7 @@ fn main() -> Result<()> {
         [0_u64; 256]
     };
 
-    let mut trusted_blocks = VecDeque::new();
-    let mut on_da_pending_blocks = VecDeque::new();
-    let mut on_da_approved_blocks = vec![];
+    let mut storage = Storage::new();
 
     let mut da_file_reader = BufReader::new(std::fs::File::open(cli.da_file)?);
     let sequencer_file_reader = BufReader::new(std::fs::File::open(cli.sequencer_file)?);
@@ -38,7 +35,7 @@ fn main() -> Result<()> {
         let block = line?.parse::<Block>()?;
         update_state(&mut state, &block);
         current_merkle_tree = Some(create_merkle_tree(&state));
-        trusted_blocks.push_back(block);
+        storage.add_trusted_block(block);
 
         if index % SEQ_BLOCKS_PER_DA == 4 {
             let index = (index / SEQ_BLOCKS_PER_DA) + 1;
@@ -50,17 +47,8 @@ fn main() -> Result<()> {
             let next_line_to_parse = match &line.find("REORG") {
                 Some(_) => {
                     let reorg_count: usize = line[6..7].parse()?;
-                    if on_da_pending_blocks.len() < reorg_count {
-                        println!("  {}: Invalid reorg, only {} blocks are pending but reorg wants to invalidate {} blocks.",
-                            "Error".bright_red(), on_da_pending_blocks.len(), reorg_count);
-                    } else {
-                        on_da_pending_blocks.drain(on_da_pending_blocks.len() - reorg_count..);
-                        trusted_blocks.drain(
-                            trusted_blocks.len() - ((reorg_count + 1) * SEQ_BLOCKS_PER_DA)
-                                ..trusted_blocks.len() - SEQ_BLOCKS_PER_DA,
-                        );
-                        println!("  {} {reorg_count}", "REORG".yellow());
-                    }
+                    println!("  {} {reorg_count}", "REORG".yellow());
+                    storage.reorg(reorg_count);
 
                     // If reorg happened we need to read the next line again.
                     let line = da_next_line(&mut da_file_reader)?;
@@ -75,11 +63,9 @@ fn main() -> Result<()> {
 
             let block = next_line_to_parse.trim_end().parse::<Block>()?;
             update_state(&mut state, &block);
-            on_da_pending_blocks.push_back(block);
-            if on_da_pending_blocks.len() == 4 {
-                trusted_blocks.drain(..SEQ_BLOCKS_PER_DA);
-                println!("  DA block {} approved {}", index - 3, trusted_blocks.len());
-                on_da_approved_blocks.push(on_da_pending_blocks.pop_front());
+            storage.add_da_pending_block(block);
+            if storage.try_approve_da_blocks() {
+                println!("  DA block {} approved", index - 3);
             }
 
             if let Some(tree) = current_merkle_tree {
@@ -98,13 +84,8 @@ fn main() -> Result<()> {
     }
 
     println!(
-        "\n\n{}{}\n{}{}\n{}{}\n{}{}\n{}{}",
-        "Trusted Blocks: ".bold(),
-        trusted_blocks.len(),
-        "Pending blocks: ".bold().yellow(),
-        on_da_pending_blocks.len(),
-        "Approved blocks: ".bold().bright_green(),
-        on_da_approved_blocks.len(),
+        "\n\n{}\n{}{}\n{}{}",
+        storage,
         "DA Remaining: ".bold().bright_yellow(),
         da_file_reader.lines().count(),
         "Sequencer lied: ".bold().red(),
