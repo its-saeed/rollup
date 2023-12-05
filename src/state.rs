@@ -39,8 +39,8 @@ pub fn load_state() -> Result<[u64; 256]> {
     let filter = doc! {};
     let find_options = FindOptions::builder().sort(doc! {}).build();
 
-    let mut cursor = collection.find(filter, find_options)?;
-    while let Some(value) = cursor.next() {
+    let cursor = collection.find(filter, find_options)?;
+    for value in cursor {
         let value = value?;
         let index = value
             .get("index")
