@@ -421,11 +421,15 @@ name = "chainway"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
  "clap",
  "colored",
+ "digest",
  "futures",
+ "hex",
  "mongodb",
  "rs_merkle",
+ "sha2",
 ]
 
 [[package]]

@@ -2,7 +2,6 @@ use anyhow::Result;
 use std::{collections::VecDeque, fmt::Display};
 
 use colored::Colorize;
-use rs_merkle::{algorithms::Sha256, MerkleTree};
 
 use crate::{Block, State};
 pub const SEQ_BLOCKS_PER_DA: usize = 5;
@@ -12,7 +11,6 @@ pub struct Storage {
     on_da_pending_blocks: VecDeque<Block>,
     on_da_approved_blocks: Vec<Block>,
     state: State,
-    current_merkle_tree: Option<MerkleTree<Sha256>>,
     sequencer_lied: usize,
 }
 
@@ -23,7 +21,6 @@ impl Storage {
             on_da_pending_blocks: VecDeque::new(),
             on_da_approved_blocks: vec![],
             state: State::new(),
-            current_merkle_tree: None,
             sequencer_lied: 0,
         }
     }
@@ -38,24 +35,21 @@ impl Storage {
 
     pub fn add_trusted_block(&mut self, block: Block) {
         self.state.update(&block);
-        self.current_merkle_tree = Some(self.state.to_merkle_tree());
         self.trusted_blocks.push_back(block);
     }
 
     pub fn add_da_block(&mut self, block: Block) {
+        let prev_root_hash = self.state.root_hash();
         self.state.update(&block);
         self.on_da_pending_blocks.push_back(block);
         if self.try_approve_da_blocks() {
             println!("  DA block approved");
         }
 
-        if let Some(tree) = &self.current_merkle_tree {
-            let next_tree = self.state.to_merkle_tree();
-            if tree.root_hex() != next_tree.root_hex() {
-                println!("{}", "  Sequencer lied".red());
-                self.sequencer_lied += 1;
-            }
-            self.current_merkle_tree = Some(next_tree);
+        let current_root_hash = self.state.root_hash();
+        if prev_root_hash != current_root_hash {
+            println!("{}", "  Sequencer lied".red());
+            self.sequencer_lied += 1;
         }
     }
 
@@ -74,6 +68,7 @@ impl Storage {
                 self.trusted_blocks.len() - ((r + 1) * SEQ_BLOCKS_PER_DA)
                     ..self.trusted_blocks.len() - SEQ_BLOCKS_PER_DA,
             );
+            self.state.rollback(r);
         }
     }
 
