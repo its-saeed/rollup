@@ -42,6 +42,7 @@ impl Storage {
         let prev_root_hash = self.state.root_hash();
         self.state.update(&block);
         self.on_da_pending_blocks.push_back(block);
+        self.state.pin();
         if self.try_approve_da_blocks() {
             println!("  DA block approved");
         }
