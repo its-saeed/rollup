@@ -1,5 +1,8 @@
 use anyhow::{Ok, Result};
-use chainway::{create_merkle_tree, load_state, persist_state, update_state, Block, Cli, Storage};
+use chainway::{
+    create_merkle_tree, load_state, persist_state, update_state, Block, Cli, Storage,
+    SEQ_BLOCKS_PER_DA,
+};
 use clap::Parser;
 use colored::Colorize;
 use std::{
@@ -15,7 +18,6 @@ fn da_next_line(da_file_reader: &mut BufReader<File>) -> Result<String> {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    const SEQ_BLOCKS_PER_DA: usize = 5;
 
     let mut state = if cli.load_state {
         load_state()?

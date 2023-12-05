@@ -8,4 +8,4 @@ pub use block::*;
 pub use cli::*;
 pub use merkle::*;
 pub use state::*;
-pub use storage::Storage;
+pub use storage::*;
