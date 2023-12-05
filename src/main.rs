@@ -1,5 +1,8 @@
 use anyhow::{Ok, Result};
-use chainway::{Block, Cli, Storage, SEQ_BLOCKS_PER_DA};
+use chainway::{
+    persistor::{load, persist},
+    Block, Cli, Storage, SEQ_BLOCKS_PER_DA,
+};
 use clap::Parser;
 use colored::Colorize;
 use std::{
@@ -17,7 +20,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     let mut storage = if cli.load_state {
-        Storage::load()?
+        load()?
     } else {
         Storage::new()
     };
@@ -67,8 +70,8 @@ fn main() -> Result<()> {
     );
 
     if cli.persist {
-        storage.persist();
+        persist(&storage)
+    } else {
+        Ok(())
     }
-
-    Ok(())
 }

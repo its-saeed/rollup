@@ -1,4 +1,4 @@
-use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, fmt::Display};
 
 use colored::Colorize;
@@ -6,10 +6,12 @@ use colored::Colorize;
 use crate::{Block, State};
 pub const SEQ_BLOCKS_PER_DA: usize = 5;
 
+#[derive(Serialize, Deserialize)]
 pub struct Storage {
     trusted_blocks: VecDeque<Block>,
     on_da_pending_blocks: VecDeque<Block>,
     on_da_approved_blocks: Vec<Block>,
+    #[serde(skip)]
     state: State,
     sequencer_lied: usize,
 }
@@ -23,14 +25,6 @@ impl Storage {
             state: State::new(),
             sequencer_lied: 0,
         }
-    }
-
-    pub fn load() -> Result<Self> {
-        todo!()
-    }
-
-    pub fn persist(self) {
-        todo!()
     }
 
     pub fn add_trusted_block(&mut self, block: Block) {

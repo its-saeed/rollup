@@ -6,6 +6,7 @@ use mongodb::{
     sync::Client,
 };
 
+#[derive(Debug, Default)]
 pub struct State(SparseMerkleTree<InMemoryHashMapStore>);
 
 impl State {

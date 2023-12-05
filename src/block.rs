@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 use std::{ops::Deref, str::FromStr};
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct Transaction {
     pub index: u8,
     pub value: u64,
@@ -13,7 +14,7 @@ impl Transaction {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Block(Vec<Transaction>);
 
 impl Deref for Block {

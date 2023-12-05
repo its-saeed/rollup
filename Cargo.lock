@@ -429,6 +429,7 @@ dependencies = [
  "hex",
  "mongodb",
  "rs_merkle",
+ "serde",
  "sha2",
 ]
 
